@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+firebase-debug.log*
+firestore-debug.log
+
+# ⚠️ CRITICAL SECURITY - Service Account Keys
+service-account-key.json
+*-service-account-key.json
+firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json
+google-credentials.json
+gcloud-credentials.json
+credentials.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+*.js.map
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Firebase emulator data
+firebase-debug.log
+ui-debug.log
+firestore-debug.log
+
+# Optional eslint cache
+.eslintcache
