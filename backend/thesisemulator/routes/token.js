@@ -6,17 +6,6 @@ const router = express.Router();
 const CODES_COL = "oauthCodes";
 const DEMO_AGENT_USER_ID = "user-1";
 
-async function storeAuthCode({ code, clientId, redirectUri }) {
-  await db.collection(CODES_COL).doc(code).set({
-    code,
-    clientId,
-    redirectUri,
-    agentUserId: DEMO_AGENT_USER_ID,
-    createdAt: Date.now(),
-    expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
-  });
-}
-
 async function consumeAuthCode({ code, clientId, redirectUri }) {
   const ref = db.collection(CODES_COL).doc(code);
   const snap = await ref.get();

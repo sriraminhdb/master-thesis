@@ -1,4 +1,6 @@
 const { db } = require("./firebaseAdmin");
+const { reportDeviceState } = require("./homegraph");
+
 const DEVICES_COL = "devices";
 
 function defaultWasherState() {
@@ -47,6 +49,11 @@ async function setOnOff(agentUserId, deviceId, on) {
     lastUpdated: Date.now(),
   };
   await ref.set(next);
+  
+  reportDeviceState(agentUserId, deviceId, next)
+    .then(() => console.log('[DeviceManager] State reported to Google for OnOff'))
+    .catch(err => console.error('[DeviceManager] Failed to report state:', err.message));
+  
   return next;
 }
 
@@ -57,7 +64,13 @@ async function setModes(agentUserId, deviceId, modeUpdates) {
     modes: { ...state.modes, ...modeUpdates },
     lastUpdated: Date.now(),
   };
+
   await ref.set(next);
+
+  reportDeviceState(agentUserId, deviceId, next)
+    .then(() => console.log('[DeviceManager] State reported to Google for Modes'))
+    .catch(err => console.error('[DeviceManager] Failed to report state:', err.message));
+  
   return next;
 }
 
@@ -68,7 +81,12 @@ async function setToggles(agentUserId, deviceId, toggleUpdates) {
     toggles: { ...state.toggles, ...toggleUpdates },
     lastUpdated: Date.now(),
   };
+
   await ref.set(next);
+  reportDeviceState(agentUserId, deviceId, next)
+    .then(() => console.log('[DeviceManager] State reported to Google for Toggles'))
+    .catch(err => console.error('[DeviceManager] Failed to report state:', err.message));
+  
   return next;
 }
 
@@ -79,11 +97,16 @@ async function startStop(agentUserId, deviceId, start) {
     ...state,
     on: isOn,
     isRunning: !!start,
-    currentCycleRemainingSec: start ? 45 * 60 : 0, // 45 min demo
+    currentCycleRemainingSec: start ? 45 * 60 : 0,
     lastUpdated: Date.now(),
   };
 
   await ref.set(next);
+
+  reportDeviceState(agentUserId, deviceId, next)
+    .then(() => console.log('[DeviceManager] State reported to Google for StartStop'))
+    .catch(err => console.error('[DeviceManager] Failed to report state:', err.message));
+  
   return next;
 }
 

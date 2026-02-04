@@ -1,7 +1,7 @@
-// routes/smarthome.js - UI Compatible Version with Voice Support
 const express = require("express");
 const { verifyAccessToken } = require("../lib/tokenStore");
 const deviceManager = require("../lib/deviceManager");
+const lightManager = require("../lib/lightManager");
 
 const router = express.Router();
 
@@ -11,7 +11,6 @@ function getBearer(req) {
   return m ? m[1] : null;
 }
 
-// POST /smarthome
 router.post("/", async (req, res) => {
   console.log('=== SMARTHOME REQUEST ===');
   console.log('Time:', new Date().toISOString());
@@ -101,8 +100,6 @@ function handleSync(agentUserId) {
           },
           willReportState: false,
           attributes: {
-            // Using Google's standard 'load' mode for UI compatibility
-            // But voice commands for custom modes will still work
             availableModes: [
               {
                 name: "load",
@@ -173,6 +170,35 @@ function handleSync(agentUserId) {
             swVersion: "1.0",
           },
         },
+        {
+          id: "light-1",
+          type: "action.devices.types.LIGHT",
+          traits: [
+            "action.devices.traits.OnOff",
+            "action.devices.traits.Brightness",
+            "action.devices.traits.ColorSetting",
+          ],
+          name: {
+            name: "Living Room Light",
+            defaultNames: ["Smart Light"],
+            nicknames: ["living room light", "main light", "light"],
+          },
+          willReportState: false,
+          attributes: {
+            colorModel: "rgb",
+            colorTemperatureRange: {
+              temperatureMinK: 2000,
+              temperatureMaxK: 9000
+            },
+            commandOnlyColorSetting: false
+          },
+          deviceInfo: {
+            manufacturer: "ThesisEmulator",
+            model: "Smart Light v1",
+            hwVersion: "1.0",
+            swVersion: "1.0",
+          },
+        },
       ],
     },
   };
@@ -188,32 +214,50 @@ async function handleQuery(agentUserId, payload) {
   for (const d of devices) {
     console.log('Querying device:', d.id);
     try {
-      const state = await deviceManager.getDeviceState(agentUserId, d.id);
-      console.log('Device state:', JSON.stringify(state, null, 2));
-      
-      // Map internal state to UI-compatible format
-      let loadSize = "medium"; // default
-      if (state.modes?.washMode === "eco" || state.modes?.washMode === "quick") {
-        loadSize = "small";
-      } else if (state.modes?.washMode === "cotton") {
-        loadSize = "medium";
-      } else if (state.modes?.washMode === "delicates") {
-        loadSize = "large";
-      }
-      
-      out[d.id] = {
-        online: state.online,
-        on: state.on,
-        isRunning: state.isRunning,
-        isPaused: false,
-        currentModeSettings: {
-          load: loadSize
-        },
-        currentToggleSettings: state.toggles || {
-          childLock: false,
-          extraRinse: false
+      if (d.id === "washer-1") {
+        const state = await deviceManager.getDeviceState(agentUserId, d.id);
+        console.log('Washer state:', JSON.stringify(state, null, 2));
+        
+        let loadSize = "medium";
+        if (state.modes?.washMode === "eco" || state.modes?.washMode === "quick") {
+          loadSize = "small";
+        } else if (state.modes?.washMode === "cotton") {
+          loadSize = "medium";
+        } else if (state.modes?.washMode === "delicates") {
+          loadSize = "large";
         }
-      };
+        
+        out[d.id] = {
+          online: state.online,
+          on: state.on,
+          isRunning: state.isRunning,
+          isPaused: false,
+          currentModeSettings: {
+            load: loadSize
+          },
+          currentToggleSettings: state.toggles || {
+            childLock: false,
+            extraRinse: false
+          }
+        };
+      } else if (d.id === "light-1") {
+        const state = await lightManager.getLightState(agentUserId, d.id);
+        console.log('Light state:', JSON.stringify(state, null, 2));
+        
+        out[d.id] = {
+          online: state.online,
+          on: state.on,
+          brightness: state.brightness,
+          color: state.color
+        };
+      } else {
+        console.log('Unknown device:', d.id);
+        out[d.id] = {
+          online: false,
+          status: "ERROR",
+          errorCode: "deviceNotFound"
+        };
+      }
     } catch (error) {
       console.error('Error querying device:', d.id, error);
       out[d.id] = {
@@ -237,84 +281,105 @@ async function handleExecute(agentUserId, payload) {
     const executions = cmd.execution || [];
 
     for (const dev of devices) {
-      let state = await deviceManager.getDeviceState(agentUserId, dev.id);
-
       try {
-        for (const ex of executions) {
-          console.log('Executing command:', ex.command);
-          console.log('Params:', JSON.stringify(ex.params, null, 2));
-          
-          if (ex.command === "action.devices.commands.OnOff") {
-            state = await deviceManager.setOnOff(agentUserId, dev.id, ex.params.on);
-          }
+        let state;
+        
+        if (dev.id === "washer-1") {
+          state = await deviceManager.getDeviceState(agentUserId, dev.id);
 
-          if (ex.command === "action.devices.commands.SetModes") {
-            // Map UI 'load' setting to internal modes
-            const modeSettings = ex.params.updateModeSettings || {};
-            console.log('SetModes - input:', JSON.stringify(modeSettings));
+          for (const ex of executions) {
+            console.log('Executing washer command:', ex.command);
+            console.log('Params:', JSON.stringify(ex.params, null, 2));
             
-            if (modeSettings.load) {
-              const loadMap = {
-                "small": "eco",
-                "medium": "cotton",
-                "large": "delicates"
-              };
-              const washMode = loadMap[modeSettings.load] || "cotton";
+            if (ex.command === "action.devices.commands.OnOff") {
+              state = await deviceManager.setOnOff(agentUserId, dev.id, ex.params.on);
+            }
+
+            if (ex.command === "action.devices.commands.SetModes") {
+              const modeSettings = ex.params.updateModeSettings || {};
               
-              state = await deviceManager.setModes(agentUserId, dev.id, {
-                washMode: washMode
-              });
-              console.log('Mapped load to washMode:', washMode);
-            } else {
-              // Direct mode settings (for voice commands)
-              state = await deviceManager.setModes(agentUserId, dev.id, modeSettings);
+              if (modeSettings.load) {
+                const loadMap = {
+                  "small": "eco",
+                  "medium": "cotton",
+                  "large": "delicates"
+                };
+                const washMode = loadMap[modeSettings.load] || "cotton";
+                state = await deviceManager.setModes(agentUserId, dev.id, { washMode });
+              } else {
+                state = await deviceManager.setModes(agentUserId, dev.id, modeSettings);
+              }
+            }
+
+            if (ex.command === "action.devices.commands.SetToggles") {
+              state = await deviceManager.setToggles(agentUserId, dev.id, ex.params.updateToggleSettings || {});
+            }
+
+            if (ex.command === "action.devices.commands.StartStop") {
+              state = await deviceManager.startStop(agentUserId, dev.id, ex.params.start);
             }
           }
 
-          if (ex.command === "action.devices.commands.SetToggles") {
-            const toggleSettings = ex.params.updateToggleSettings || {};
-            console.log('SetToggles - input:', JSON.stringify(toggleSettings));
-            state = await deviceManager.setToggles(agentUserId, dev.id, toggleSettings);
+          let loadSize = "medium";
+          if (state.modes?.washMode === "eco" || state.modes?.washMode === "quick") {
+            loadSize = "small";
+          } else if (state.modes?.washMode === "cotton") {
+            loadSize = "medium";
+          } else if (state.modes?.washMode === "delicates") {
+            loadSize = "large";
           }
 
-          if (ex.command === "action.devices.commands.StartStop") {
-            console.log('StartStop - start:', ex.params.start);
-            state = await deviceManager.startStop(agentUserId, dev.id, ex.params.start);
-          }
-
-          if (ex.command === "action.devices.commands.PauseUnpause") {
-            console.log('PauseUnpause - pause:', ex.params.pause);
-            // You can implement pause logic here if needed
-          }
-        }
-
-        // Map internal state back to UI format for response
-        let loadSize = "medium";
-        if (state.modes?.washMode === "eco" || state.modes?.washMode === "quick") {
-          loadSize = "small";
-        } else if (state.modes?.washMode === "cotton") {
-          loadSize = "medium";
-        } else if (state.modes?.washMode === "delicates") {
-          loadSize = "large";
-        }
-
-        results.push({
-          ids: [dev.id],
-          status: "SUCCESS",
-          states: {
-            online: state.online,
-            on: state.on,
-            isRunning: state.isRunning,
-            isPaused: false,
-            currentModeSettings: {
-              load: loadSize
+          results.push({
+            ids: [dev.id],
+            status: "SUCCESS",
+            states: {
+              online: state.online,
+              on: state.on,
+              isRunning: state.isRunning,
+              isPaused: false,
+              currentModeSettings: { load: loadSize },
+              currentToggleSettings: state.toggles || { childLock: false, extraRinse: false }
             },
-            currentToggleSettings: state.toggles || {
-              childLock: false,
-              extraRinse: false
+          });
+        } else if (dev.id === "light-1") {
+          state = await lightManager.getLightState(agentUserId, dev.id);
+
+          for (const ex of executions) {
+            console.log('Executing light command:', ex.command);
+            console.log('Params:', JSON.stringify(ex.params, null, 2));
+            
+            if (ex.command === "action.devices.commands.OnOff") {
+              state = await lightManager.setLightOnOff(agentUserId, dev.id, ex.params.on);
             }
-          },
-        });
+
+            if (ex.command === "action.devices.commands.BrightnessAbsolute") {
+              state = await lightManager.setLightBrightness(agentUserId, dev.id, ex.params.brightness);
+            }
+
+            if (ex.command === "action.devices.commands.ColorAbsolute") {
+              if (ex.params.color && ex.params.color.spectrumRGB !== undefined) {
+                state = await lightManager.setLightColor(agentUserId, dev.id, ex.params.color.spectrumRGB);
+              }
+            }
+          }
+
+          results.push({
+            ids: [dev.id],
+            status: "SUCCESS",
+            states: {
+              online: state.online,
+              on: state.on,
+              brightness: state.brightness,
+              color: state.color
+            },
+          });
+        } else {
+          results.push({
+            ids: [dev.id],
+            status: "ERROR",
+            errorCode: "deviceNotFound",
+          });
+        }
       } catch (e) {
         console.error('Execute error:', e);
         results.push({
