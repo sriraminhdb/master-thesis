@@ -1,24 +1,15 @@
 const { google } = require('googleapis');
-const functions = require('firebase-functions');
 
 let auth;
 try {
-  const serviceAccountKey = functions.config().homegraph?.key;
+  const serviceAccountPath = './service-account-key.json';
   
-  if (serviceAccountKey) {
-    const credentials = JSON.parse(serviceAccountKey);
-    auth = new google.auth.GoogleAuth({
-      credentials: credentials,
-      scopes: ['https://www.googleapis.com/auth/homegraph']
-    });
-    console.log('[HomeGraph] Using credentials from Firebase config');
-  } else {
-    auth = new google.auth.GoogleAuth({
-      keyFile: './service-account-key.json',
-      scopes: ['https://www.googleapis.com/auth/homegraph']
-    });
-    console.log('[HomeGraph] Using credentials from service account file');
-  }
+  auth = new google.auth.GoogleAuth({
+    keyFile: serviceAccountPath,
+    scopes: ['https://www.googleapis.com/auth/homegraph']
+  });
+  
+  console.log('[HomeGraph] Using credentials from service account file');
 } catch (error) {
   console.error('[HomeGraph] Failed to initialize auth:', error.message);
   auth = new google.auth.GoogleAuth({
@@ -119,5 +110,5 @@ module.exports = {
   requestSync,
   reportState,
   reportDeviceState,
-  formatDeviceState
+  formatDeviceState,
 };

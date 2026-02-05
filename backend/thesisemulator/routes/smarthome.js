@@ -2,7 +2,8 @@ const express = require("express");
 const { verifyAccessToken } = require("../lib/tokenStore");
 const deviceManager = require("../lib/deviceManager");
 const lightManager = require("../lib/lightManager");
-
+const outletManager = require("../lib/outletManager");
+const switchManager = require("../lib/switchManager");
 const router = express.Router();
 
 function getBearer(req) {
@@ -199,6 +200,46 @@ function handleSync(agentUserId) {
             swVersion: "1.0",
           },
         },
+        {
+          id: "outlet-1",
+          type: "action.devices.types.OUTLET",
+          traits: [
+            "action.devices.traits.OnOff",
+          ],
+          name: {
+            name: "Smart Outlet",
+            defaultNames: ["Power Outlet"],
+            nicknames: ["outlet", "plug", "socket"],
+          },
+          willReportState: false,
+          attributes: {},
+          deviceInfo: {
+            manufacturer: "ThesisEmulator",
+            model: "Smart Outlet v1",
+            hwVersion: "1.0",
+            swVersion: "1.0",
+          },
+        },
+        {
+          id: "switch-1",
+          type: "action.devices.types.SWITCH",
+          traits: [
+            "action.devices.traits.OnOff",
+          ],
+          name: {
+            name: "Smart Switch",
+            defaultNames: ["Light Switch"],
+            nicknames: ["switch", "wall switch"],
+          },
+          willReportState: false,
+          attributes: {},
+          deviceInfo: {
+            manufacturer: "ThesisEmulator",
+            model: "Smart Switch v1",
+            hwVersion: "1.0",
+            swVersion: "1.0",
+          },
+        },
       ],
     },
   };
@@ -216,8 +257,6 @@ async function handleQuery(agentUserId, payload) {
     try {
       if (d.id === "washer-1") {
         const state = await deviceManager.getDeviceState(agentUserId, d.id);
-        console.log('Washer state:', JSON.stringify(state, null, 2));
-        
         let loadSize = "medium";
         if (state.modes?.washMode === "eco" || state.modes?.washMode === "quick") {
           loadSize = "small";
@@ -232,26 +271,30 @@ async function handleQuery(agentUserId, payload) {
           on: state.on,
           isRunning: state.isRunning,
           isPaused: false,
-          currentModeSettings: {
-            load: loadSize
-          },
-          currentToggleSettings: state.toggles || {
-            childLock: false,
-            extraRinse: false
-          }
+          currentModeSettings: { load: loadSize },
+          currentToggleSettings: state.toggles || { childLock: false, extraRinse: false }
         };
       } else if (d.id === "light-1") {
         const state = await lightManager.getLightState(agentUserId, d.id);
-        console.log('Light state:', JSON.stringify(state, null, 2));
-        
         out[d.id] = {
           online: state.online,
           on: state.on,
           brightness: state.brightness,
           color: state.color
         };
+      } else if (d.id === "outlet-1") {
+        const state = await outletManager.getOutletState(agentUserId, d.id);
+        out[d.id] = {
+          online: state.online,
+          on: state.on
+        };
+      } else if (d.id === "switch-1") {
+        const state = await switchManager.getSwitchState(agentUserId, d.id);
+        out[d.id] = {
+          online: state.online,
+          on: state.on
+        };
       } else {
-        console.log('Unknown device:', d.id);
         out[d.id] = {
           online: false,
           status: "ERROR",
@@ -289,32 +332,23 @@ async function handleExecute(agentUserId, payload) {
 
           for (const ex of executions) {
             console.log('Executing washer command:', ex.command);
-            console.log('Params:', JSON.stringify(ex.params, null, 2));
             
             if (ex.command === "action.devices.commands.OnOff") {
               state = await deviceManager.setOnOff(agentUserId, dev.id, ex.params.on);
             }
-
             if (ex.command === "action.devices.commands.SetModes") {
               const modeSettings = ex.params.updateModeSettings || {};
-              
               if (modeSettings.load) {
-                const loadMap = {
-                  "small": "eco",
-                  "medium": "cotton",
-                  "large": "delicates"
-                };
+                const loadMap = { "small": "eco", "medium": "cotton", "large": "delicates" };
                 const washMode = loadMap[modeSettings.load] || "cotton";
                 state = await deviceManager.setModes(agentUserId, dev.id, { washMode });
               } else {
                 state = await deviceManager.setModes(agentUserId, dev.id, modeSettings);
               }
             }
-
             if (ex.command === "action.devices.commands.SetToggles") {
               state = await deviceManager.setToggles(agentUserId, dev.id, ex.params.updateToggleSettings || {});
             }
-
             if (ex.command === "action.devices.commands.StartStop") {
               state = await deviceManager.startStop(agentUserId, dev.id, ex.params.start);
             }
@@ -346,16 +380,13 @@ async function handleExecute(agentUserId, payload) {
 
           for (const ex of executions) {
             console.log('Executing light command:', ex.command);
-            console.log('Params:', JSON.stringify(ex.params, null, 2));
             
             if (ex.command === "action.devices.commands.OnOff") {
               state = await lightManager.setLightOnOff(agentUserId, dev.id, ex.params.on);
             }
-
             if (ex.command === "action.devices.commands.BrightnessAbsolute") {
               state = await lightManager.setLightBrightness(agentUserId, dev.id, ex.params.brightness);
             }
-
             if (ex.command === "action.devices.commands.ColorAbsolute") {
               if (ex.params.color && ex.params.color.spectrumRGB !== undefined) {
                 state = await lightManager.setLightColor(agentUserId, dev.id, ex.params.color.spectrumRGB);
@@ -371,6 +402,44 @@ async function handleExecute(agentUserId, payload) {
               on: state.on,
               brightness: state.brightness,
               color: state.color
+            },
+          });
+        } else if (dev.id === "outlet-1") {
+          state = await outletManager.getOutletState(agentUserId, dev.id);
+
+          for (const ex of executions) {
+            console.log('Executing outlet command:', ex.command);
+            
+            if (ex.command === "action.devices.commands.OnOff") {
+              state = await outletManager.setOutletOnOff(agentUserId, dev.id, ex.params.on);
+            }
+          }
+
+          results.push({
+            ids: [dev.id],
+            status: "SUCCESS",
+            states: {
+              online: state.online,
+              on: state.on
+            },
+          });
+        } else if (dev.id === "switch-1") {
+          state = await switchManager.getSwitchState(agentUserId, dev.id);
+
+          for (const ex of executions) {
+            console.log('Executing switch command:', ex.command);
+            
+            if (ex.command === "action.devices.commands.OnOff") {
+              state = await switchManager.setSwitchOnOff(agentUserId, dev.id, ex.params.on);
+            }
+          }
+
+          results.push({
+            ids: [dev.id],
+            status: "SUCCESS",
+            states: {
+              online: state.online,
+              on: state.on
             },
           });
         } else {

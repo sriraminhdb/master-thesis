@@ -2,7 +2,8 @@ const express = require("express");
 const { requestSync, reportDeviceState } = require("../lib/homegraph");
 const deviceManager = require("../lib/deviceManager");
 const lightManager = require("../lib/lightManager");
-
+const outletManager = require("../lib/outletManager");
+const switchManager = require("../lib/switchManager");
 const router = express.Router();
 
 router.get("/request-sync", async (req, res) => {
@@ -211,25 +212,25 @@ router.post("/light-demo", async (req, res) => {
     console.log(`[Test] Running light demo sequence for: ${deviceId}`);
     
     const sequence = [];
-
+    
     sequence.push(await lightManager.setLightOnOff(userId, deviceId, true));
     await new Promise(resolve => setTimeout(resolve, 500));
 
     sequence.push(await lightManager.setLightColor(userId, deviceId, 0xFF0000));
     await new Promise(resolve => setTimeout(resolve, 1000));
-
+    
     sequence.push(await lightManager.setLightColor(userId, deviceId, 0x00FF00));
     await new Promise(resolve => setTimeout(resolve, 1000));
-
+    
     sequence.push(await lightManager.setLightColor(userId, deviceId, 0x0000FF));
     await new Promise(resolve => setTimeout(resolve, 1000));
-
+    
     sequence.push(await lightManager.setLightBrightness(userId, deviceId, 50));
     await new Promise(resolve => setTimeout(resolve, 1000));
-
+    
     sequence.push(await lightManager.setLightBrightness(userId, deviceId, 100));
     await new Promise(resolve => setTimeout(resolve, 1000));
-
+    
     sequence.push(await lightManager.setLightColor(userId, deviceId, 0xFFFFFF));
     
     return res.json({
@@ -242,6 +243,128 @@ router.post("/light-demo", async (req, res) => {
     });
   } catch (error) {
     console.error('[Test] Light demo error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+router.get("/outlet-state", async (req, res) => {
+  try {
+    const { deviceId = "outlet-1", userId = "user-1" } = req.query;
+    
+    const state = await outletManager.getOutletState(userId, deviceId);
+    
+    return res.json({
+      success: true,
+      deviceId,
+      userId,
+      state
+    });
+  } catch (error) {
+    console.error('[Test] Get outlet state error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+router.post("/outlet-control", async (req, res) => {
+  try {
+    const { 
+      deviceId = "outlet-1", 
+      userId = "user-1", 
+      action = "turnOn"
+    } = req.body;
+    
+    console.log(`[Test] Outlet control - ${action} for device: ${deviceId}`);
+    
+    let newState;
+    
+    switch (action) {
+      case "turnOn":
+        newState = await outletManager.setOutletOnOff(userId, deviceId, true);
+        break;
+      case "turnOff":
+        newState = await outletManager.setOutletOnOff(userId, deviceId, false);
+        break;
+      default:
+        throw new Error(`Unknown action: ${action}`);
+    }
+    
+    return res.json({
+      success: true,
+      message: `${action} completed and state reported to Google`,
+      deviceId,
+      userId,
+      action,
+      newState
+    });
+  } catch (error) {
+    console.error('[Test] Outlet control error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+router.get("/switch-state", async (req, res) => {
+  try {
+    const { deviceId = "switch-1", userId = "user-1" } = req.query;
+    
+    const state = await switchManager.getSwitchState(userId, deviceId);
+    
+    return res.json({
+      success: true,
+      deviceId,
+      userId,
+      state
+    });
+  } catch (error) {
+    console.error('[Test] Get switch state error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+router.post("/switch-control", async (req, res) => {
+  try {
+    const { 
+      deviceId = "switch-1", 
+      userId = "user-1", 
+      action = "turnOn"
+    } = req.body;
+    
+    console.log(`[Test] Switch control - ${action} for device: ${deviceId}`);
+    
+    let newState;
+    
+    switch (action) {
+      case "turnOn":
+        newState = await switchManager.setSwitchOnOff(userId, deviceId, true);
+        break;
+      case "turnOff":
+        newState = await switchManager.setSwitchOnOff(userId, deviceId, false);
+        break;
+      default:
+        throw new Error(`Unknown action: ${action}`);
+    }
+    
+    return res.json({
+      success: true,
+      message: `${action} completed and state reported to Google`,
+      deviceId,
+      userId,
+      action,
+      newState
+    });
+  } catch (error) {
+    console.error('[Test] Switch control error:', error);
     return res.status(500).json({
       success: false,
       error: error.message
