@@ -3,6 +3,7 @@ const oauthRoutes = require("./routes/oauth");
 const tokenRoutes = require("./routes/token");
 const smarthomeRoutes = require("./routes/smarthome");
 const testRoutes = require("./routes/test");
+const metricsRoutes = require("./routes/metrics");
 const app = express();
 
 app.use(express.json());
@@ -13,5 +14,6 @@ app.use("/oauth", oauthRoutes);
 app.use("/token", tokenRoutes);
 app.use("/smarthome", smarthomeRoutes);
 app.use("/test", testRoutes);
+app.use("/metrics", metricsRoutes);
 
 module.exports = app;

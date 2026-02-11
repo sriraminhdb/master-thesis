@@ -380,6 +380,7 @@ async function handleExecute(agentUserId, payload) {
 
           for (const ex of executions) {
             console.log('Executing light command:', ex.command);
+            console.log('Light params:', JSON.stringify(ex.params));
             
             if (ex.command === "action.devices.commands.OnOff") {
               state = await lightManager.setLightOnOff(agentUserId, dev.id, ex.params.on);
@@ -388,8 +389,19 @@ async function handleExecute(agentUserId, payload) {
               state = await lightManager.setLightBrightness(agentUserId, dev.id, ex.params.brightness);
             }
             if (ex.command === "action.devices.commands.ColorAbsolute") {
-              if (ex.params.color && ex.params.color.spectrumRGB !== undefined) {
-                state = await lightManager.setLightColor(agentUserId, dev.id, ex.params.color.spectrumRGB);
+              console.log('ColorAbsolute received!');
+              console.log('Color data:', JSON.stringify(ex.params.color));
+              if (ex.params.color) {
+                const colorValue = ex.params.color.spectrumRgb || ex.params.color.spectrumRGB;
+                
+                if (colorValue !== undefined) {
+                  console.log('Setting color to:', colorValue);
+                  state = await lightManager.setLightColor(agentUserId, dev.id, { 
+                    spectrumRgb: colorValue 
+                  });
+                } else {
+                  console.log('WARNING: No color value found in params');
+                }
               }
             }
           }
