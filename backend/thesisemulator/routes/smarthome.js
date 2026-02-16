@@ -4,6 +4,7 @@ const deviceManager = require("../lib/deviceManager");
 const lightManager = require("../lib/lightManager");
 const outletManager = require("../lib/outletManager");
 const switchManager = require("../lib/switchManager");
+const energyManager = require("../lib/energyManager");
 const router = express.Router();
 
 function getBearer(req) {
@@ -240,6 +241,51 @@ function handleSync(agentUserId) {
             swVersion: "1.0",
           },
         },
+        {
+          id: "energy-manager-1",
+          type: "action.devices.types.SENSOR",
+          traits: [
+            "action.devices.traits.OnOff",
+            "action.devices.traits.Modes",
+            "action.devices.traits.SensorState",
+            "action.devices.traits.EnergyStorage"
+          ],
+          name: {
+            name: "Energy Manager",
+            defaultNames: ["Smart Energy Controller"],
+            nicknames: ["energy manager", "power manager", "solar system"],
+          },
+          willReportState: false,
+          attributes: {
+            availableModes: [
+              {
+                name: "power_mode",
+                name_values: [{ name_synonym: ["power mode", "energy mode"], lang: "en" }],
+                settings: [
+                  { setting_name: "auto", setting_values: [{ setting_synonym: ["auto", "automatic"], lang: "en" }] },
+                  { setting_name: "grid", setting_values: [{ setting_synonym: ["grid", "grid power"], lang: "en" }] },
+                  { setting_name: "solar", setting_values: [{ setting_synonym: ["solar", "solar power"], lang: "en" }] },
+                  { setting_name: "battery", setting_values: [{ setting_synonym: ["battery", "battery power"], lang: "en" }] }
+                ],
+                ordered: false
+              }
+            ],
+            sensorStatesSupported: [
+              { name: "PowerSource", numericCapabilities: { rawValueUnit: "NO_UNITS" } },
+              { name: "SolarGeneration", numericCapabilities: { rawValueUnit: "KILOWATTS" } },
+              { name: "MonthlySavings", numericCapabilities: { rawValueUnit: "NO_UNITS" } }
+            ],
+            queryOnlyEnergyStorage: true,
+            energyStorageDistanceUnitForUX: "PERCENTAGE",
+            isRechargeable: true
+          },
+          deviceInfo: {
+            manufacturer: "ThesisEmulator",
+            model: "Smart Energy Manager v1",
+            hwVersion: "1.0",
+            swVersion: "1.0",
+          },
+        },
       ],
     },
   };
@@ -293,6 +339,23 @@ async function handleQuery(agentUserId, payload) {
         out[d.id] = {
           online: state.online,
           on: state.on
+        };
+      } else if (d.id === "energy-manager-1") {
+        const state = await energyManager.getEnergyState(agentUserId, d.id);
+        
+        out[d.id] = {
+          online: state.online,
+          on: state.on,
+          currentModeSettings: { power_mode: state.mode },
+          currentSensorStateData: [
+            { name: "PowerSource", rawValue: state.powerSource === 'grid' ? 0 : state.powerSource === 'solar' ? 1 : state.powerSource === 'battery' ? 2 : 3 },
+            { name: "SolarGeneration", rawValue: state.solarGeneration },
+            { name: "MonthlySavings", rawValue: state.monthlySavings }
+          ],
+          descriptiveCapacityRemaining: state.batteryLevel > 70 ? "HIGH" : state.batteryLevel > 30 ? "MEDIUM" : "LOW",
+          capacityRemaining: [{ rawValue: state.batteryLevel, unit: "PERCENTAGE" }],
+          capacityUntilFull: [{ rawValue: 100 - state.batteryLevel, unit: "PERCENTAGE" }],
+          isCharging: state.solarGeneration > 0 && state.batteryLevel < 100
         };
       } else {
         out[d.id] = {
@@ -452,6 +515,41 @@ async function handleExecute(agentUserId, payload) {
             states: {
               online: state.online,
               on: state.on
+            },
+          });
+        } else if (dev.id === "energy-manager-1") {
+          state = await energyManager.getEnergyState(agentUserId, dev.id);
+
+          for (const ex of executions) {
+            console.log('Executing energy manager command:', ex.command);
+            
+            if (ex.command === "action.devices.commands.OnOff") {
+              state = await energyManager.setEnergyOnOff(agentUserId, dev.id, ex.params.on);
+            }
+            if (ex.command === "action.devices.commands.SetModes") {
+              const modeSettings = ex.params.updateModeSettings || {};
+              if (modeSettings.power_mode) {
+                state = await energyManager.setEnergyMode(agentUserId, dev.id, modeSettings.power_mode);
+              }
+            }
+          }
+
+          results.push({
+            ids: [dev.id],
+            status: "SUCCESS",
+            states: {
+              online: state.online,
+              on: state.on,
+              currentModeSettings: { power_mode: state.mode },
+              currentSensorStateData: [
+                { name: "PowerSource", rawValue: state.powerSource === 'grid' ? 0 : state.powerSource === 'solar' ? 1 : state.powerSource === 'battery' ? 2 : 3 },
+                { name: "SolarGeneration", rawValue: state.solarGeneration },
+                { name: "MonthlySavings", rawValue: state.monthlySavings }
+              ],
+              descriptiveCapacityRemaining: state.batteryLevel > 70 ? "HIGH" : state.batteryLevel > 30 ? "MEDIUM" : "LOW",
+              capacityRemaining: [{ rawValue: state.batteryLevel, unit: "PERCENTAGE" }],
+              capacityUntilFull: [{ rawValue: 100 - state.batteryLevel, unit: "PERCENTAGE" }],
+              isCharging: state.solarGeneration > 0 && state.batteryLevel < 100
             },
           });
         } else {
