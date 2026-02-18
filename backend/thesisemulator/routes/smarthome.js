@@ -5,6 +5,7 @@ const lightManager = require("../lib/lightManager");
 const outletManager = require("../lib/outletManager");
 const switchManager = require("../lib/switchManager");
 const energyManager = require("../lib/energyManager");
+const metricsCollector = require("../lib/metricsCollector");
 const router = express.Router();
 
 function getBearer(req) {
@@ -389,32 +390,53 @@ async function handleExecute(agentUserId, payload) {
     for (const dev of devices) {
       try {
         let state;
-        
+
         if (dev.id === "washer-1") {
           state = await deviceManager.getDeviceState(agentUserId, dev.id);
 
           for (const ex of executions) {
+            const cmdStartTime = Date.now();
             console.log('Executing washer command:', ex.command);
             
-            if (ex.command === "action.devices.commands.OnOff") {
-              state = await deviceManager.setOnOff(agentUserId, dev.id, ex.params.on);
-            }
-            if (ex.command === "action.devices.commands.SetModes") {
-              const modeSettings = ex.params.updateModeSettings || {};
-              if (modeSettings.load) {
-                const loadMap = { "small": "eco", "medium": "cotton", "large": "delicates" };
-                const washMode = loadMap[modeSettings.load] || "cotton";
-                state = await deviceManager.setModes(agentUserId, dev.id, { washMode });
-              } else {
-                state = await deviceManager.setModes(agentUserId, dev.id, modeSettings);
+            let cmdSuccess = true;
+            let cmdError = null;
+            
+            try {
+              if (ex.command === "action.devices.commands.OnOff") {
+                state = await deviceManager.setOnOff(agentUserId, dev.id, ex.params.on);
               }
+              if (ex.command === "action.devices.commands.SetModes") {
+                const modeSettings = ex.params.updateModeSettings || {};
+                if (modeSettings.load) {
+                  const loadMap = { "small": "eco", "medium": "cotton", "large": "delicates" };
+                  const washMode = loadMap[modeSettings.load] || "cotton";
+                  state = await deviceManager.setModes(agentUserId, dev.id, { washMode });
+                } else {
+                  state = await deviceManager.setModes(agentUserId, dev.id, modeSettings);
+                }
+              }
+              if (ex.command === "action.devices.commands.SetToggles") {
+                state = await deviceManager.setToggles(agentUserId, dev.id, ex.params.updateToggleSettings || {});
+              }
+              if (ex.command === "action.devices.commands.StartStop") {
+                state = await deviceManager.startStop(agentUserId, dev.id, ex.params.start);
+              }
+            } catch (error) {
+              cmdSuccess = false;
+              cmdError = error.message;
+              console.error('Washer command error:', error);
             }
-            if (ex.command === "action.devices.commands.SetToggles") {
-              state = await deviceManager.setToggles(agentUserId, dev.id, ex.params.updateToggleSettings || {});
-            }
-            if (ex.command === "action.devices.commands.StartStop") {
-              state = await deviceManager.startStop(agentUserId, dev.id, ex.params.start);
-            }
+
+            const responseTime = Date.now() - cmdStartTime;
+            await metricsCollector.logCommandExecution({
+              deviceId: dev.id,
+              deviceType: 'washer',
+              command: ex.command,
+              responseTimeMs: responseTime,
+              success: cmdSuccess,
+              errorCode: cmdError,
+              agentUserId: agentUserId
+            });
           }
 
           let loadSize = "medium";
@@ -442,31 +464,53 @@ async function handleExecute(agentUserId, payload) {
           state = await lightManager.getLightState(agentUserId, dev.id);
 
           for (const ex of executions) {
+            const cmdStartTime = Date.now();
             console.log('Executing light command:', ex.command);
             console.log('Light params:', JSON.stringify(ex.params));
             
-            if (ex.command === "action.devices.commands.OnOff") {
-              state = await lightManager.setLightOnOff(agentUserId, dev.id, ex.params.on);
-            }
-            if (ex.command === "action.devices.commands.BrightnessAbsolute") {
-              state = await lightManager.setLightBrightness(agentUserId, dev.id, ex.params.brightness);
-            }
-            if (ex.command === "action.devices.commands.ColorAbsolute") {
-              console.log('ColorAbsolute received!');
-              console.log('Color data:', JSON.stringify(ex.params.color));
-              if (ex.params.color) {
-                const colorValue = ex.params.color.spectrumRgb || ex.params.color.spectrumRGB;
+            let cmdSuccess = true;
+            let cmdError = null;
+            
+            try {
+              if (ex.command === "action.devices.commands.OnOff") {
+                state = await lightManager.setLightOnOff(agentUserId, dev.id, ex.params.on);
+              }
+              if (ex.command === "action.devices.commands.BrightnessAbsolute") {
+                state = await lightManager.setLightBrightness(agentUserId, dev.id, ex.params.brightness);
+              }
+              if (ex.command === "action.devices.commands.ColorAbsolute") {
+                console.log('ColorAbsolute received!');
+                console.log('Color data:', JSON.stringify(ex.params.color));
                 
-                if (colorValue !== undefined) {
-                  console.log('Setting color to:', colorValue);
-                  state = await lightManager.setLightColor(agentUserId, dev.id, { 
-                    spectrumRgb: colorValue 
-                  });
-                } else {
-                  console.log('WARNING: No color value found in params');
+                if (ex.params.color) {
+                  const colorValue = ex.params.color.spectrumRgb || ex.params.color.spectrumRGB;
+                  
+                  if (colorValue !== undefined) {
+                    console.log('Setting color to:', colorValue);
+                    state = await lightManager.setLightColor(agentUserId, dev.id, { 
+                      spectrumRgb: colorValue 
+                    });
+                  } else {
+                    console.log('WARNING: No color value found in params');
+                  }
                 }
               }
+            } catch (error) {
+              cmdSuccess = false;
+              cmdError = error.message;
+              console.error('Light command error:', error);
             }
+
+            const responseTime = Date.now() - cmdStartTime;
+            await metricsCollector.logCommandExecution({
+              deviceId: dev.id,
+              deviceType: 'light',
+              command: ex.command,
+              responseTimeMs: responseTime,
+              success: cmdSuccess,
+              errorCode: cmdError,
+              agentUserId: agentUserId
+            });
           }
 
           results.push({
@@ -483,11 +527,32 @@ async function handleExecute(agentUserId, payload) {
           state = await outletManager.getOutletState(agentUserId, dev.id);
 
           for (const ex of executions) {
+            const cmdStartTime = Date.now();
             console.log('Executing outlet command:', ex.command);
             
-            if (ex.command === "action.devices.commands.OnOff") {
-              state = await outletManager.setOutletOnOff(agentUserId, dev.id, ex.params.on);
+            let cmdSuccess = true;
+            let cmdError = null;
+            
+            try {
+              if (ex.command === "action.devices.commands.OnOff") {
+                state = await outletManager.setOutletOnOff(agentUserId, dev.id, ex.params.on);
+              }
+            } catch (error) {
+              cmdSuccess = false;
+              cmdError = error.message;
+              console.error('Outlet command error:', error);
             }
+
+            const responseTime = Date.now() - cmdStartTime;
+            await metricsCollector.logCommandExecution({
+              deviceId: dev.id,
+              deviceType: 'outlet',
+              command: ex.command,
+              responseTimeMs: responseTime,
+              success: cmdSuccess,
+              errorCode: cmdError,
+              agentUserId: agentUserId
+            });
           }
 
           results.push({
@@ -502,11 +567,32 @@ async function handleExecute(agentUserId, payload) {
           state = await switchManager.getSwitchState(agentUserId, dev.id);
 
           for (const ex of executions) {
+            const cmdStartTime = Date.now();
             console.log('Executing switch command:', ex.command);
             
-            if (ex.command === "action.devices.commands.OnOff") {
-              state = await switchManager.setSwitchOnOff(agentUserId, dev.id, ex.params.on);
+            let cmdSuccess = true;
+            let cmdError = null;
+            
+            try {
+              if (ex.command === "action.devices.commands.OnOff") {
+                state = await switchManager.setSwitchOnOff(agentUserId, dev.id, ex.params.on);
+              }
+            } catch (error) {
+              cmdSuccess = false;
+              cmdError = error.message;
+              console.error('Switch command error:', error);
             }
+
+            const responseTime = Date.now() - cmdStartTime;
+            await metricsCollector.logCommandExecution({
+              deviceId: dev.id,
+              deviceType: 'switch',
+              command: ex.command,
+              responseTimeMs: responseTime,
+              success: cmdSuccess,
+              errorCode: cmdError,
+              agentUserId: agentUserId
+            });
           }
 
           results.push({
@@ -521,17 +607,39 @@ async function handleExecute(agentUserId, payload) {
           state = await energyManager.getEnergyState(agentUserId, dev.id);
 
           for (const ex of executions) {
+            const cmdStartTime = Date.now();
             console.log('Executing energy manager command:', ex.command);
+            console.log('Energy params:', JSON.stringify(ex.params));
             
-            if (ex.command === "action.devices.commands.OnOff") {
-              state = await energyManager.setEnergyOnOff(agentUserId, dev.id, ex.params.on);
-            }
-            if (ex.command === "action.devices.commands.SetModes") {
-              const modeSettings = ex.params.updateModeSettings || {};
-              if (modeSettings.power_mode) {
-                state = await energyManager.setEnergyMode(agentUserId, dev.id, modeSettings.power_mode);
+            let cmdSuccess = true;
+            let cmdError = null;
+            
+            try {
+              if (ex.command === "action.devices.commands.OnOff") {
+                state = await energyManager.setEnergyOnOff(agentUserId, dev.id, ex.params.on);
               }
+              if (ex.command === "action.devices.commands.SetModes") {
+                const modeSettings = ex.params.updateModeSettings || {};
+                if (modeSettings.power_mode) {
+                  state = await energyManager.setEnergyMode(agentUserId, dev.id, modeSettings.power_mode);
+                }
+              }
+            } catch (error) {
+              cmdSuccess = false;
+              cmdError = error.message;
+              console.error('Energy manager command error:', error);
             }
+
+            const responseTime = Date.now() - cmdStartTime;
+            await metricsCollector.logCommandExecution({
+              deviceId: dev.id,
+              deviceType: 'energy_manager',
+              command: ex.command,
+              responseTimeMs: responseTime,
+              success: cmdSuccess,
+              errorCode: cmdError,
+              agentUserId: agentUserId
+            });
           }
 
           results.push({

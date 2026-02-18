@@ -1,72 +1,90 @@
 const express = require("express");
 const metricsCollector = require("../lib/metricsCollector");
-
 const router = express.Router();
 
 router.get("/summary", async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const defaultStartDate = thirtyDaysAgo.toISOString().split('T')[0];
-    
-    const startDate = req.query.startDate || defaultStartDate;
-    const endDate = req.query.endDate || today;
-    
-    console.log(`[Metrics API] Getting summary for ${startDate} to ${endDate}`);
-    
+    const endDate = req.query.endDate || new Date().toISOString().split('T')[0];
+    const startDate = req.query.startDate || getDateDaysAgo(7);
+
     const summary = await metricsCollector.getMetricsSummary(startDate, endDate);
-    
-    return res.json({
+
+    res.json({
       success: true,
       data: summary
     });
   } catch (error) {
-    console.error('[Metrics API] Summary error:', error);
-    return res.status(500).json({
+    console.error('Error getting summary:', error);
+    res.status(500).json({
       success: false,
       error: error.message
     });
   }
 });
 
-router.get("/events", async (req, res) => {
+router.get("/commands", async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 100;
-    
-    console.log(`[Metrics API] Getting ${limit} recent events`);
-    
-    const events = await metricsCollector.getRecentEvents(limit);
-    
-    return res.json({
-      success: true,
-      count: events.length,
-      data: events
-    });
+    const endDate = req.query.endDate || new Date().toISOString().split('T')[0];
+    const startDate = req.query.startDate || getDateDaysAgo(7);
+    const format = req.query.format || 'json';
+
+    const commands = await metricsCollector.getCommandMetrics(startDate, endDate);
+
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="commands_${startDate}_${endDate}.csv"`);
+      res.send(metricsCollector.metricsToCSV(commands));
+    } else {
+      res.json({
+        success: true,
+        count: commands.length,
+        data: commands
+      });
+    }
   } catch (error) {
-    console.error('[Metrics API] Events error:', error);
-    return res.status(500).json({
+    console.error('Error getting commands:', error);
+    res.status(500).json({
       success: false,
       error: error.message
     });
   }
 });
 
-router.get("/uptime", async (req, res) => {
+router.get("/energy", async (req, res) => {
   try {
-    const days = parseInt(req.query.days) || 30;
-    
-    console.log(`[Metrics API] Calculating uptime for last ${days} days`);
-    
-    const uptime = await metricsCollector.calculateUptime(days);
-    
-    return res.json({
+    const endDate = req.query.endDate || new Date().toISOString().split('T')[0];
+    const startDate = req.query.startDate || getDateDaysAgo(7);
+
+    const energyMetrics = await metricsCollector.getEnergyMetrics(startDate, endDate);
+
+    res.json({
       success: true,
-      data: uptime
+      data: energyMetrics
     });
   } catch (error) {
-    console.error('[Metrics API] Uptime error:', error);
-    return res.status(500).json({
+    console.error('Error getting energy metrics:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+router.get("/device/:deviceId", async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const endDate = req.query.endDate || new Date().toISOString().split('T')[0];
+    const startDate = req.query.startDate || getDateDaysAgo(30); // Last 30 days
+
+    const stats = await metricsCollector.getDeviceStatistics(deviceId, startDate, endDate);
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error getting device stats:', error);
+    res.status(500).json({
       success: false,
       error: error.message
     });
@@ -75,84 +93,103 @@ router.get("/uptime", async (req, res) => {
 
 router.get("/dashboard", async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const startDate = thirtyDaysAgo.toISOString().split('T')[0];
-    
-    console.log('[Metrics API] Generating dashboard data');
-    
-    const [summary, uptime, recentEvents] = await Promise.all([
-      metricsCollector.getMetricsSummary(startDate, today),
-      metricsCollector.calculateUptime(30),
-      metricsCollector.getRecentEvents(50)
+    const endDate = new Date().toISOString().split('T')[0];
+    const startDate7 = getDateDaysAgo(7);
+    const startDate30 = getDateDaysAgo(30);
+
+    const [
+      summary7Days,
+      summary30Days,
+      energyMetrics,
+      lightStats,
+      washerStats,
+      energyManagerStats
+    ] = await Promise.all([
+      metricsCollector.getMetricsSummary(startDate7, endDate),
+      metricsCollector.getMetricsSummary(startDate30, endDate),
+      metricsCollector.getEnergyMetrics(startDate7, endDate),
+      metricsCollector.getDeviceStatistics('light-1', startDate30, endDate),
+      metricsCollector.getDeviceStatistics('washer-1', startDate30, endDate),
+      metricsCollector.getDeviceStatistics('energy-manager-1', startDate30, endDate)
     ]);
-    
-    return res.json({
+
+    res.json({
       success: true,
       data: {
-        summary,
-        uptime,
-        recentEvents,
-        generatedAt: new Date().toISOString()
+        last7Days: summary7Days,
+        last30Days: summary30Days,
+        energyManager: energyMetrics,
+        devices: {
+          light: lightStats,
+          washer: washerStats,
+          energyManager: energyManagerStats
+        }
       }
     });
   } catch (error) {
-    console.error('[Metrics API] Dashboard error:', error);
-    return res.status(500).json({
+    console.error('Error getting dashboard:', error);
+    res.status(500).json({
       success: false,
       error: error.message
     });
   }
 });
 
-router.get("/performance", async (req, res) => {
+router.get("/export", async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const startDate = sevenDaysAgo.toISOString().split('T')[0];
-    
-    const summary = await metricsCollector.getMetricsSummary(startDate, today);
+    const endDate = new Date().toISOString().split('T')[0];
+    const startDate = req.query.startDate || getDateDaysAgo(90);
 
-    const performance = {
-      period: `${startDate} to ${today}`,
-      deviceCommands: summary.categories.device_commands || {},
-      reportState: summary.categories.report_state || {},
-      apiRequests: summary.categories.api_requests || {},
-    };
+    const [
+      summary,
+      commands,
+      energyMetrics,
+      devices
+    ] = await Promise.all([
+      metricsCollector.getMetricsSummary(startDate, endDate),
+      metricsCollector.getCommandMetrics(startDate, endDate),
+      metricsCollector.getEnergyMetrics(startDate, endDate),
+      Promise.all([
+        metricsCollector.getDeviceStatistics('light-1', startDate, endDate),
+        metricsCollector.getDeviceStatistics('washer-1', startDate, endDate),
+        metricsCollector.getDeviceStatistics('outlet-1', startDate, endDate),
+        metricsCollector.getDeviceStatistics('switch-1', startDate, endDate),
+        metricsCollector.getDeviceStatistics('energy-manager-1', startDate, endDate)
+      ])
+    ]);
 
-    const checks = {
-      responseTime: {
-        requirement: "95% of requests < 2000ms",
-        status: "needs_calculation",
-      },
-      uptime: {
-        requirement: "99.5% uptime",
-        actual: (await metricsCollector.calculateUptime(30))?.uptimePercentage,
-        status: "checking"
-      },
-      successRate: {
-        requirement: "> 95% success rate",
-        actual: summary.categories.device_commands?.successRate,
-        status: "checking"
-      }
-    };
-    
-    return res.json({
+    res.json({
       success: true,
-      data: {
-        performance,
-        thesisRequirements: checks
+      exportDate: new Date().toISOString(),
+      period: {
+        start: startDate,
+        end: endDate
+      },
+      summary,
+      totalCommands: commands.length,
+      commands,
+      energyManager: energyMetrics,
+      devices: {
+        'light-1': devices[0],
+        'washer-1': devices[1],
+        'outlet-1': devices[2],
+        'switch-1': devices[3],
+        'energy-manager-1': devices[4]
       }
     });
   } catch (error) {
-    console.error('[Metrics API] Performance error:', error);
-    return res.status(500).json({
+    console.error('Error exporting metrics:', error);
+    res.status(500).json({
       success: false,
       error: error.message
     });
   }
 });
+
+function getDateDaysAgo(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().split('T')[0];
+}
 
 module.exports = router;
