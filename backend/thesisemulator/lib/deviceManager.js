@@ -57,7 +57,7 @@ async function setOnOff(agentUserId, deviceId, on) {
     
     const endTime = Date.now();
 
-    metricsCollector.logDeviceCommand({
+    metricsCollector.logCommandExecution({
       deviceId,
       deviceType: 'washer',
       command: 'OnOff',
@@ -93,7 +93,7 @@ async function setOnOff(agentUserId, deviceId, on) {
     return next;
   } catch (error) {
     const endTime = Date.now();
-    metricsCollector.logDeviceCommand({
+    metricsCollector.logCommandExecution({
       deviceId,
       deviceType: 'washer',
       command: 'OnOff',
@@ -121,7 +121,7 @@ async function setModes(agentUserId, deviceId, modeUpdates) {
     
     const endTime = Date.now();
     
-    metricsCollector.logDeviceCommand({
+    metricsCollector.logCommandExecution({
       deviceId,
       deviceType: 'washer',
       command: 'SetModes',
@@ -157,7 +157,7 @@ async function setModes(agentUserId, deviceId, modeUpdates) {
     return next;
   } catch (error) {
     const endTime = Date.now();
-    metricsCollector.logDeviceCommand({
+    metricsCollector.logCommandExecution({
       deviceId,
       deviceType: 'washer',
       command: 'SetModes',
@@ -185,7 +185,7 @@ async function setToggles(agentUserId, deviceId, toggleUpdates) {
     
     const endTime = Date.now();
     
-    metricsCollector.logDeviceCommand({
+    metricsCollector.logCommandExecution({
       deviceId,
       deviceType: 'washer',
       command: 'SetToggles',
@@ -221,7 +221,7 @@ async function setToggles(agentUserId, deviceId, toggleUpdates) {
     return next;
   } catch (error) {
     const endTime = Date.now();
-    metricsCollector.logDeviceCommand({
+    metricsCollector.logCommandExecution({
       deviceId,
       deviceType: 'washer',
       command: 'SetToggles',
@@ -252,7 +252,7 @@ async function startStop(agentUserId, deviceId, start) {
     
     const endTime = Date.now();
     
-    metricsCollector.logDeviceCommand({
+    metricsCollector.logCommandExecution({
       deviceId,
       deviceType: 'washer',
       command: 'StartStop',
@@ -288,7 +288,7 @@ async function startStop(agentUserId, deviceId, start) {
     return next;
   } catch (error) {
     const endTime = Date.now();
-    metricsCollector.logDeviceCommand({
+    metricsCollector.logCommandExecution({
       deviceId,
       deviceType: 'washer',
       command: 'StartStop',
