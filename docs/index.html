@@ -27,45 +27,56 @@
     body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
     #root { min-height: 100vh; }
     .dashboard { max-width: 1600px; margin: 0 auto; padding: 2rem; }
-    .header { margin-bottom: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+
+    .header { margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
     .header h1 {
       font-size: 2.5rem; font-weight: 700;
       background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
       margin-bottom: 0.5rem;
     }
-    .header-meta { display: flex; align-items: center; gap: 1rem; color: var(--text-secondary); font-size: 0.95rem; font-family: 'JetBrains Mono', monospace; }
-    .refreshing-badge {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      background: rgba(16,185,129,0.1); border: 1px solid var(--accent-green);
-      color: var(--accent-green); padding: 0.15rem 0.6rem; border-radius: 999px;
-      font-size: 0.75rem; animation: pulse 1s ease-in-out infinite;
+    .header-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; color: var(--text-secondary); font-size: 0.9rem; font-family: 'JetBrains Mono', monospace; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500;
     }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-    .warning-banner {
-      background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.35);
-      border-radius: 8px; padding: 0.75rem 1rem; color: var(--accent-yellow);
-      font-size: 0.85rem; margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;
+    .pill-green  { background: rgba(16,185,129,0.1);  color: var(--accent-green);  border: 1px solid var(--accent-green); }
+    .pill-yellow { background: rgba(245,158,11,0.1);  color: var(--accent-yellow); border: 1px solid var(--accent-yellow); }
+    .pill-red    { background: rgba(239,68,68,0.1);   color: var(--accent-red);    border: 1px solid var(--accent-red); }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: blink 1.5s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    .alert {
+      border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;
+      font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; line-height: 1.6;
     }
+    .alert-yellow { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.35); color: var(--accent-yellow); }
+    .alert-red    { background: rgba(239,68,68,0.08);  border: 1px solid rgba(239,68,68,0.35);  color: var(--accent-red); }
+    .alert-blue   { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.35); color: var(--accent-blue); }
+
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-    .stat-card {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;
-      transition: all 0.3s; position: relative; overflow: hidden;
-    }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; transition: all 0.3s; position: relative; overflow: hidden; }
     .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--accent),transparent); opacity:0; transition:opacity 0.3s; }
     .stat-card:hover { transform:translateY(-4px); box-shadow:0 20px 40px rgba(0,0,0,0.3); border-color:var(--accent); }
     .stat-card:hover::before { opacity:1; }
-    .stat-card.blue  { --accent: var(--accent-blue); }
-    .stat-card.green { --accent: var(--accent-green); }
-    .stat-card.yellow{ --accent: var(--accent-yellow); }
-    .stat-card.purple{ --accent: var(--accent-purple); }
-    .stat-label { font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.4rem; font-weight:500; }
-    .stat-value { font-size:2.5rem; font-weight:700; font-family:'JetBrains Mono',monospace; color:var(--accent); line-height:1.2; margin-bottom:0.25rem; }
-    .stat-unit  { font-size:1rem; color:var(--text-secondary); font-weight:400; }
+    .stat-card.blue   { --accent: var(--accent-blue); }
+    .stat-card.green  { --accent: var(--accent-green); }
+    .stat-card.yellow { --accent: var(--accent-yellow); }
+    .stat-card.purple { --accent: var(--accent-purple); }
+    .stat-label    { font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.4rem; font-weight:500; }
+    .stat-value    { font-size:2.5rem; font-weight:700; font-family:'JetBrains Mono',monospace; color:var(--accent); line-height:1.2; margin-bottom:0.25rem; }
+    .stat-unit     { font-size:1rem; color:var(--text-secondary); font-weight:400; }
     .stat-subtitle { font-size:0.8rem; color:var(--text-secondary); font-family:'JetBrains Mono',monospace; }
+
     .charts-section { display:grid; grid-template-columns:repeat(auto-fit, minmax(480px,1fr)); gap:2rem; margin-bottom:2rem; }
     .chart-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
-    .chart-card h3 { font-size:1.1rem; margin-bottom:1.25rem; font-weight:600; }
+    .chart-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.25rem; gap:1rem; }
+    .chart-header h3 { font-size:1.1rem; font-weight:600; }
+    .chart-meta { font-size:0.72rem; color:var(--text-secondary); font-family:'JetBrains Mono',monospace; text-align:right; line-height:1.8; white-space:nowrap; }
+    .chart-wrapper { position:relative; height:300px; width:100%; }
+    .chart-empty { height:300px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; color:var(--text-secondary); font-family:'JetBrains Mono',monospace; font-size:0.85rem; border:1px dashed var(--border); border-radius:8px; }
+
     .devices-section h2 { font-size:1.4rem; margin-bottom:1.25rem; font-weight:600; }
     .devices-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.5rem; }
     .device-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:1.25rem; transition:all 0.3s; }
@@ -74,18 +85,23 @@
     .device-name { font-size:1rem; font-weight:600; }
     .device-badge { padding:0.2rem 0.65rem; border-radius:999px; font-size:0.72rem; font-weight:500; font-family:'JetBrains Mono',monospace; }
     .badge-success { background:rgba(16,185,129,0.1); color:var(--accent-green); border:1px solid var(--accent-green); }
-    .badge-warning  { background:rgba(245,158,11,0.1);  color:var(--accent-yellow);border:1px solid var(--accent-yellow); }
-    .badge-danger   { background:rgba(239,68,68,0.1);   color:var(--accent-red);   border:1px solid var(--accent-red); }
+    .badge-warning  { background:rgba(245,158,11,0.1); color:var(--accent-yellow); border:1px solid var(--accent-yellow); }
+    .badge-danger   { background:rgba(239,68,68,0.1);  color:var(--accent-red);   border:1px solid var(--accent-red); }
     .device-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:0.75rem; }
     .device-stat { text-align:center; }
     .device-stat-value { font-size:1.4rem; font-weight:700; font-family:'JetBrains Mono',monospace; color:var(--accent-blue); }
     .device-stat-label { font-size:0.7rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-top:0.2rem; }
+
+    .overlay-spinner { position:fixed; inset:0; background:rgba(10,14,26,0.75); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; z-index:9999; backdrop-filter:blur(4px); }
     .loading { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; gap:1rem; }
     .spinner { width:48px; height:48px; border:3px solid var(--border); border-top-color:var(--accent-blue); border-radius:50%; animation:spin 1s linear infinite; }
     @keyframes spin { to{transform:rotate(360deg)} }
     .error { background:rgba(239,68,68,0.1); border:1px solid var(--accent-red); border-radius:8px; padding:1rem; color:var(--accent-red); margin:2rem 0; }
+
     .refresh-btn { position:fixed; bottom:2rem; right:2rem; background:var(--accent-blue); color:white; border:none; border-radius:50%; width:56px; height:56px; font-size:1.4rem; cursor:pointer; box-shadow:0 10px 30px var(--glow-blue); transition:all 0.3s; z-index:1000; }
     .refresh-btn:hover { transform:scale(1.1) rotate(180deg); }
+    .refresh-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
     @media(max-width:768px){ .dashboard{padding:1rem;} .stats-grid,.charts-section,.devices-grid{grid-template-columns:1fr;} }
   </style>
 </head>
@@ -94,209 +110,283 @@
 <script type="text/babel">
   const { useState, useEffect, useRef } = React;
   const API_BASE = 'https://us-central1-thesisemulator.cloudfunctions.net/api/metrics';
+  const DEVICE_IDS = ['light-1','washer-1','outlet-1','switch-1','energy-manager-1'];
 
-  function badgeClass(rate) {
-    if (rate >= 90) return 'device-badge badge-success';
-    if (rate >= 70) return 'device-badge badge-warning';
-    return 'device-badge badge-danger';
+  function badgeClass(r) {
+    return r >= 90 ? 'device-badge badge-success' : r >= 70 ? 'device-badge badge-warning' : 'device-badge badge-danger';
+  }
+
+  function toDate(val) {
+    if (!val) return null;
+    if (val._seconds) return new Date(val._seconds * 1000);
+    if (val.seconds)  return new Date(val.seconds  * 1000);
+    const n = Number(val);
+    if (!isNaN(n))    return new Date(n > 1e12 ? n : n * 1000);
+    const d = new Date(val);
+    return isNaN(d) ? null : d;
+  }
+
+  function fmt(date) {
+    if (!date) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function findRtField(cmd) {
+    for (const k of ['responseTimeMs','responseTime','duration','durationMs','latency','latencyMs','elapsed','elapsedMs']) {
+      if (typeof cmd[k] === 'number') return k;
+    }
+    for (const [k,v] of Object.entries(cmd)) {
+      if (typeof v === 'number' && v > 5 && v < 20000) return k;
+    }
+    return null;
+  }
+
+  function findTsField(cmd) {
+    for (const k of ['timestamp','createdAt','executedAt','recordedAt','time','ts','date']) {
+      if (cmd[k] !== undefined) return k;
+    }
+    return null;
+  }
+
+  function destroyChart(ref) {
+    if (ref.current) { try { ref.current.destroy(); } catch(e){} ref.current = null; }
+  }
+
+  function sortByTime(cmds, tsField) {
+    if (!tsField) return cmds;
+    return [...cmds].sort((a, b) => {
+      const da = toDate(a[tsField]);
+      const db = toDate(b[tsField]);
+      if (!da || !db) return 0;
+      return da - db;
+    });
+  }
+
+  function buildLineChart(canvas, recent, rtField, tsField) {
+    const values = recent.map(c => typeof c[rtField] === 'number' ? c[rtField] : null);
+    const labels = recent.map(c => {
+      const d = tsField ? toDate(c[tsField]) : null;
+      return d ? fmt(d) : '';
+    });
+
+    return new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Response Time (ms)',
+          data: values,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.1)',
+          tension: 0.4, fill: true,
+          pointRadius: 4, pointHoverRadius: 6,
+          pointBackgroundColor: '#3b82f6',
+          pointBorderColor: '#fff', pointBorderWidth: 2,
+          spanGaps: true
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { labels: { color: '#9ca3af', font: { size: 12 } } },
+          tooltip: {
+            backgroundColor: '#1a1f35', borderColor: '#3b82f6', borderWidth: 2,
+            titleColor: '#e5e7eb', bodyColor: '#e5e7eb', padding: 12,
+            callbacks: { label: ctx => `Response: ${ctx.parsed.y !== null ? ctx.parsed.y + ' ms' : 'N/A'}` }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true, grid: { color: '#2d3548' },
+            ticks: { color: '#9ca3af', padding: 8 },
+            title: { display: true, text: 'Response Time (ms)', color: '#9ca3af' }
+          },
+          x: { grid: { color: '#2d3548' }, ticks: { color: '#9ca3af', maxRotation: 45, font: { size: 9 } } }
+        }
+      }
+    });
+  }
+
+  function buildPieChart(canvas, devices) {
+    const COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444'];
+    return new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: devices.map(d => d.deviceId),
+        datasets: [{ data: devices.map(d => d.totalCommands), backgroundColor: COLORS, borderWidth: 3, borderColor: '#1a1f35', hoverOffset: 10 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#e5e7eb', padding: 15, font: { size: 12 } } },
+          tooltip: {
+            backgroundColor: '#1a1f35', borderColor: '#2d3548', borderWidth: 1,
+            titleColor: '#e5e7eb', bodyColor: '#e5e7eb', padding: 12,
+            callbacks: { label(ctx) { const t = ctx.dataset.data.reduce((a,b)=>a+b,0); return `${ctx.label}: ${ctx.parsed} (${((ctx.parsed/t)*100).toFixed(1)}%)`; } }
+          }
+        }
+      }
+    });
   }
 
   function Dashboard() {
     const [summary,     setSummary]     = useState(null);
     const [devices,     setDevices]     = useState([]);
     const [commands,    setCommands]    = useState([]);
-    const [loading,     setLoading]     = useState(true);
+    const [chartCmds,   setChartCmds]   = useState([]);
+    const [rtField,     setRtField]     = useState(null);
+    const [tsField,     setTsField]     = useState(null);
+    const [initialLoad, setInitialLoad] = useState(true);
+    const [fetching,    setFetching]    = useState(false);
     const [error,       setError]       = useState(null);
-    const [refreshing,  setRefreshing]  = useState(false);
     const [lastUpdated, setLastUpdated] = useState(new Date());
-    const summaryRef   = useRef(null);
+    const [newestTs,    setNewestTs]    = useState(null);
+    const [dataAgeMin,  setDataAgeMin]  = useState(null);
+
+    const summaryRef    = useRef(null);
     const lineCanvasRef = useRef(null);
     const pieCanvasRef  = useRef(null);
     const lineChartRef  = useRef(null);
     const pieChartRef   = useRef(null);
 
-
-    const fetchData = async (isManual = false) => {
-      if (isManual || summaryRef.current === null) {
-        setLoading(true);
-      } else {
-        setRefreshing(true);
-      }
+    const fetchData = async () => {
+      setFetching(true);
       setError(null);
+      const bust = `?_=${Date.now()}`;
 
       try {
         const [sumRes, cmdRes] = await Promise.all([
-          fetch(`${API_BASE}/summary`),
-          fetch(`${API_BASE}/commands`)
+          fetch(`${API_BASE}/summary${bust}`),
+          fetch(`${API_BASE}/commands${bust}`)
         ]);
+
         const sumData = await sumRes.json();
         const cmdData = await cmdRes.json();
 
         summaryRef.current = sumData.data;
         setSummary(sumData.data);
-        setCommands(cmdData.data || []);
 
-        const ids = ['light-1','washer-1','outlet-1','switch-1','energy-manager-1'];
-        const devResults = await Promise.all(ids.map(id => fetch(`${API_BASE}/device/${id}`).then(r => r.json())));
-        setDevices(devResults.map(r => r.data).filter(d => d && !d.noData));
+        const cmds = Array.isArray(cmdData.data) ? cmdData.data
+                   : Array.isArray(cmdData)       ? cmdData
+                   : [];
 
+        if (cmds.length > 0) {
+          const rt = findRtField(cmds[0]);
+          const ts = findTsField(cmds[0]);
+          setRtField(rt);
+          setTsField(ts);
+
+          const sorted = sortByTime(cmds, ts);
+          const recent20 = sorted.slice(-20);
+
+          setChartCmds(recent20);
+
+          const newest = sorted[sorted.length - 1];
+          if (ts && newest) {
+            const newestDate = toDate(newest[ts]);
+            setNewestTs(newestDate);
+            if (newestDate) {
+              const ageMs = Date.now() - newestDate.getTime();
+              setDataAgeMin(Math.round(ageMs / 60000));
+            }
+          }
+        }
+
+        setCommands(cmds);
+
+        const devResults = await Promise.all(
+          DEVICE_IDS.map(id => fetch(`${API_BASE}/device/${id}${bust}`).then(r=>r.json()).catch(()=>null))
+        );
+        setDevices(devResults.map(r=>r?.data).filter(d=>d&&!d.noData));
         setLastUpdated(new Date());
+
       } catch (err) {
         console.error('[API]', err);
         setError(err.message);
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        setFetching(false);
+        setInitialLoad(false);
       }
     };
 
     useEffect(() => {
-      fetchData(true);
-      const iv = setInterval(() => fetchData(false), 30000);
-      return () => clearInterval(iv);
+      fetchData();
+      const iv = setInterval(fetchData, 30000);
+      return () => { clearInterval(iv); destroyChart(lineChartRef); destroyChart(pieChartRef); };
     }, []);
 
+    useEffect(() => {
+      if (initialLoad || chartCmds.length === 0 || !rtField) return;
+      const raf = requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!lineCanvasRef.current) return;
+        destroyChart(lineChartRef);
+        lineChartRef.current = buildLineChart(lineCanvasRef.current, chartCmds, rtField, tsField);
+      }));
+      return () => cancelAnimationFrame(raf);
+    }, [initialLoad, chartCmds, rtField, tsField]);
 
     useEffect(() => {
-      if (loading || commands.length === 0) return;
-
-      const t = setTimeout(() => {
-        if (lineCanvasRef.current) {
-          const ctx = lineCanvasRef.current.getContext('2d');
-          const recent = [...commands].slice(0, 20).reverse();
-          const labels  = recent.map((_, i) => `#${i + 1}`);
-          const data    = recent.map(c => c.responseTimeMs);
-
-          if (lineChartRef.current) {
-            lineChartRef.current.data.labels = labels;
-            lineChartRef.current.data.datasets[0].data = data;
-            lineChartRef.current.update('active');
-          } else {
-            lineChartRef.current = new Chart(ctx, {
-              type: 'line',
-              data: {
-                labels,
-                datasets: [{
-                  label: 'Response Time (ms)',
-                  data,
-                  borderColor: '#3b82f6',
-                  backgroundColor: 'rgba(59,130,246,0.1)',
-                  tension: 0.4, fill: true,
-                  pointRadius: 4, pointHoverRadius: 6,
-                  pointBackgroundColor: '#3b82f6',
-                  pointBorderColor: '#fff', pointBorderWidth: 2
-                }]
-              },
-              options: {
-                responsive: true, maintainAspectRatio: false,
-                interaction: { intersect: false, mode: 'index' },
-                plugins: {
-                  legend: { labels: { color: '#9ca3af', font: { size: 12 } } },
-                  tooltip: { backgroundColor: '#1a1f35', borderColor: '#3b82f6', borderWidth: 2, titleColor: '#e5e7eb', bodyColor: '#e5e7eb', padding: 12 }
-                },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    grid: { color: '#2d3548' },
-                    ticks: { color: '#9ca3af', padding: 8 },
-                    title: { display: true, text: 'Response Time (ms)', color: '#9ca3af' }
-                  },
-                  x: { grid: { color: '#2d3548' }, ticks: { color: '#9ca3af', maxRotation: 0 } }
-                }
-              }
-            });
-          }
-        }
-      }, 50);
-
-      return () => clearTimeout(t);
-    }, [loading, commands]);
-
-    useEffect(() => {
-      if (loading || devices.length === 0) return;
-
-      const t = setTimeout(() => {
-        if (pieCanvasRef.current) {
-          const ctx = pieCanvasRef.current.getContext('2d');
-          const COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444'];
-          const labels = devices.map(d => d.deviceId);
-          const data   = devices.map(d => d.totalCommands);
-
-          if (pieChartRef.current) {
-            pieChartRef.current.data.labels = labels;
-            pieChartRef.current.data.datasets[0].data = data;
-            pieChartRef.current.update('active');
-          } else {
-            pieChartRef.current = new Chart(ctx, {
-              type: 'doughnut',
-              data: {
-                labels,
-                datasets: [{ data, backgroundColor: COLORS, borderWidth: 3, borderColor: '#1a1f35', hoverOffset: 10 }]
-              },
-              options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: {
-                  legend: { position: 'bottom', labels: { color: '#e5e7eb', padding: 15, font: { size: 12 } } },
-                  tooltip: {
-                    backgroundColor: '#1a1f35', borderColor: '#2d3548', borderWidth: 1,
-                    titleColor: '#e5e7eb', bodyColor: '#e5e7eb', padding: 12,
-                    callbacks: {
-                      label(ctx) {
-                        const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
-                        return `${ctx.label}: ${ctx.parsed} (${((ctx.parsed/total)*100).toFixed(1)}%)`;
-                      }
-                    }
-                  }
-                }
-              }
-            });
-          }
-        }
-      }, 50);
-
-      return () => clearTimeout(t);
-    }, [loading, devices]);
+      if (initialLoad || devices.length === 0) return;
+      const raf = requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!pieCanvasRef.current) return;
+        destroyChart(pieChartRef);
+        pieChartRef.current = buildPieChart(pieCanvasRef.current, devices);
+      }));
+      return () => cancelAnimationFrame(raf);
+    }, [initialLoad, devices]);
 
     const devTotals = devices.reduce(
-      (acc, d) => {
-        const ok = Math.round((d.successRate / 100) * d.totalCommands);
-        return { total: acc.total + d.totalCommands, succeeded: acc.succeeded + ok };
-      },
-      { total: 0, succeeded: 0 }
+      (acc,d) => { const ok = Math.round((d.successRate/100)*d.totalCommands); return {total:acc.total+d.totalCommands, succeeded:acc.succeeded+ok}; },
+      {total:0, succeeded:0}
     );
-    const devFailed      = devTotals.total - devTotals.succeeded;
-    const trueRate       = devTotals.total > 0 ? ((devTotals.succeeded / devTotals.total) * 100).toFixed(1) : '—';
+    const devFailed  = devTotals.total - devTotals.succeeded;
+    const trueRate   = devTotals.total > 0 ? ((devTotals.succeeded/devTotals.total)*100).toFixed(1) : '—';
+    const trueAvgMs  = devices.length > 0 && devTotals.total > 0
+      ? Math.round(devices.reduce((acc,d)=>acc+d.avgResponseMs*d.totalCommands,0)/devTotals.total) : null;
+    const trueAvgSec = trueAvgMs ? (trueAvgMs/1000).toFixed(2) : '—';
     const summaryMismatch = summary && devFailed > 0 && parseFloat(summary.successRate) === 100;
-    const trueAvgMs = devices.length > 0
-    ? Math.round(
-        devices.reduce((acc, d) => acc + d.avgResponseMs * d.totalCommands, 0) /
-        devices.reduce((acc, d) => acc + d.totalCommands, 0)
-      )
-    : null;
 
-    const trueAvgSec = trueAvgMs ? (trueAvgMs / 1000).toFixed(2) : '—';
+    const isStale    = dataAgeMin !== null && dataAgeMin > 5;
+    const isVeryStale= dataAgeMin !== null && dataAgeMin > 60;
 
-    if (loading) return (
-      <div className="loading">
-        <div className="spinner"></div>
-        <p style={{color:'var(--text-secondary)'}}>Loading metrics…</p>
-      </div>
+    const chartFrom = chartCmds.length > 0 && tsField ? toDate(chartCmds[0][tsField])                   : null;
+    const chartTo   = chartCmds.length > 0 && tsField ? toDate(chartCmds[chartCmds.length-1][tsField])  : null;
+
+    if (initialLoad) return (
+      <div className="loading"><div className="spinner"></div><p style={{color:'var(--text-secondary)'}}>Loading metrics…</p></div>
     );
-
-    if (error) return (
+    if (error && !summary) return (
       <div className="dashboard">
-        <div className="error"><strong>Error:</strong> {error}</div>
+        <div className="error"><strong>Error:</strong> {error}&nbsp;
+          <button onClick={fetchData} style={{color:'inherit',background:'none',border:'1px solid currentColor',borderRadius:4,padding:'2px 8px',cursor:'pointer'}}>Retry</button>
+        </div>
       </div>
     );
 
     return (
       <div className="dashboard">
+        {fetching && (
+          <div className="overlay-spinner">
+            <div className="spinner"></div>
+            <p style={{color:'var(--text-secondary)',fontFamily:'JetBrains Mono,monospace',fontSize:'0.9rem'}}>Refreshing…</p>
+          </div>
+        )}
 
         <div className="header">
           <h1>Smart Home Metrics</h1>
           <div className="header-meta">
-            <span>Real-time performance monitoring • Last updated: {lastUpdated.toLocaleTimeString()}</span>
-            {refreshing && <span className="refreshing-badge">↻ updating</span>}
+            <span>Dashboard refreshed: {lastUpdated.toLocaleTimeString()}</span>
+            {dataAgeMin !== null && (
+              <span className={`pill ${isVeryStale ? 'pill-red' : isStale ? 'pill-yellow' : 'pill-green'}`}>
+                {!isStale && <span className="dot"></span>}
+                {isVeryStale
+                  ? `⚠ No new commands for ${dataAgeMin}m — backend may not be logging`
+                  : isStale
+                  ? `Last command ${dataAgeMin}m ago`
+                  : `Last command ${dataAgeMin}m ago`}
+              </span>
+            )}
           </div>
         </div>
 
@@ -305,23 +395,18 @@
             <div className="stat-card blue">
               <div className="stat-label">Total Commands</div>
               <div className="stat-value">{devTotals.total || summary.totalCommands}</div>
-              <div className="stat-subtitle">
-                {devTotals.succeeded} succeeded &nbsp;•&nbsp; {devFailed} failed
-              </div>
+              <div className="stat-subtitle">{devTotals.succeeded} succeeded &nbsp;•&nbsp; {devFailed} failed</div>
             </div>
-
             <div className="stat-card green">
               <div className="stat-label">Success Rate</div>
               <div className="stat-value">{trueRate}<span className="stat-unit">%</span></div>
               <div className="stat-subtitle">{devTotals.succeeded} / {devTotals.total} succeeded</div>
             </div>
-
             <div className="stat-card yellow">
               <div className="stat-label">Avg Response Time</div>
               <div className="stat-value">{trueAvgSec}<span className="stat-unit">s</span></div>
               <div className="stat-subtitle">{trueAvgMs}ms</div>
             </div>
-
             <div className="stat-card purple">
               <div className="stat-label">Active Devices</div>
               <div className="stat-value">{devices.length}</div>
@@ -332,17 +417,44 @@
 
         <div className="charts-section">
           <div className="chart-card">
-            <h3>Response Time Trend (Last 20 Commands)</h3>
-            <div style={{height:'300px', position:'relative'}}>
-              <canvas ref={lineCanvasRef}></canvas>
+            <div className="chart-header">
+              <h3>Response Time Trend (Last 20 Commands)</h3>
+              <div className="chart-meta">
+                <div>Total in DB: {commands.length}</div>
+                {chartFrom && chartTo && (
+                  <div>{fmt(chartFrom)} → {fmt(chartTo)}</div>
+                )}
+                {newestTs && (
+                  <div style={{color: isVeryStale ? 'var(--accent-red)' : isStale ? 'var(--accent-yellow)' : 'var(--accent-green)'}}>
+                    Newest: {fmt(newestTs)}
+                  </div>
+                )}
+              </div>
             </div>
+            {commands.length === 0 ? (
+              <div className="chart-empty">
+                <span>⚠ No commands returned from API</span>
+              </div>
+            ) : !rtField ? (
+              <div className="chart-empty">
+                <span>⚠ Response time field not found</span>
+              </div>
+            ) : (
+              <div className="chart-wrapper">
+                <canvas ref={lineCanvasRef}></canvas>
+              </div>
+            )}
           </div>
 
           <div className="chart-card">
-            <h3>Commands by Device</h3>
-            <div style={{height:'300px', position:'relative', display:'flex', justifyContent:'center', alignItems:'center'}}>
-              <canvas ref={pieCanvasRef} style={{maxWidth:'280px', maxHeight:'280px'}}></canvas>
-            </div>
+            <div className="chart-header"><h3>Commands by Device</h3></div>
+            {devices.length === 0 ? (
+              <div className="chart-empty"><span>⚠ No device data</span></div>
+            ) : (
+              <div className="chart-wrapper" style={{display:'flex',justifyContent:'center',alignItems:'center'}}>
+                <canvas ref={pieCanvasRef} style={{maxWidth:'280px',maxHeight:'280px'}}></canvas>
+              </div>
+            )}
           </div>
         </div>
 
@@ -356,29 +468,17 @@
                   <div className={badgeClass(device.successRate)}>{device.successRate}% Success</div>
                 </div>
                 <div className="device-stats">
-                  <div className="device-stat">
-                    <div className="device-stat-value">{device.totalCommands}</div>
-                    <div className="device-stat-label">Commands</div>
-                  </div>
-                  <div className="device-stat">
-                    <div className="device-stat-value">{device.avgResponseMs}</div>
-                    <div className="device-stat-label">Avg (ms)</div>
-                  </div>
-                  <div className="device-stat">
-                    <div className="device-stat-value">{device.minResponseMs}</div>
-                    <div className="device-stat-label">Min (ms)</div>
-                  </div>
-                  <div className="device-stat">
-                    <div className="device-stat-value">{device.maxResponseMs}</div>
-                    <div className="device-stat-label">Max (ms)</div>
-                  </div>
+                  <div className="device-stat"><div className="device-stat-value">{device.totalCommands}</div><div className="device-stat-label">Commands</div></div>
+                  <div className="device-stat"><div className="device-stat-value">{device.avgResponseMs}</div><div className="device-stat-label">Avg (ms)</div></div>
+                  <div className="device-stat"><div className="device-stat-value">{device.minResponseMs}</div><div className="device-stat-label">Min (ms)</div></div>
+                  <div className="device-stat"><div className="device-stat-value">{device.maxResponseMs}</div><div className="device-stat-label">Max (ms)</div></div>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <button className="refresh-btn" onClick={() => fetchData(true)} title="Refresh">↻</button>
+        <button className="refresh-btn" onClick={fetchData} disabled={fetching} title="Refresh">↻</button>
       </div>
     );
   }
