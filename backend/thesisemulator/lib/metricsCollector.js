@@ -105,33 +105,54 @@ async function logHardwareCommand(deviceId, command, responseTimeMs) {
 async function getMetricsSummary(startDate, endDate) {
   try {
     const snapshot = await admin.firestore()
-      .collection('metrics_daily_summary')
+      .collection('metrics_commands')
       .where('date', '>=', startDate)
       .where('date', '<=', endDate)
       .get();
 
-    let totalCommands = 0;
-    let successfulCommands = 0;
-    let failedCommands = 0;
-    let totalResponseTime = 0;
+    const responseTimes = [];
+    let successCount = 0;
+    let totalCount = 0;
 
     snapshot.forEach(doc => {
       const data = doc.data();
-      totalCommands += data.totalCommands || 0;
-      successfulCommands += data.successfulCommands || 0;
-      failedCommands += data.failedCommands || 0;
-      totalResponseTime += data.totalResponseTime || 0;
+      
+      // ✅ FILTER: Only count valid commands (> 3ms)
+      if (data.responseTimeMs && data.responseTimeMs > 3) {
+        responseTimes.push(data.responseTimeMs);
+        totalCount++;
+        
+        if (data.success) {
+          successCount++;
+        }
+      }
     });
 
-    const avgResponseTime = totalCommands > 0 ? totalResponseTime / totalCommands : 0;
-    const successRate = totalCommands > 0 ? (successfulCommands / totalCommands) * 100 : 0;
+    if (totalCount === 0) {
+      return {
+        period: `${startDate} to ${endDate}`,
+        totalCommands: 0,
+        successfulCommands: 0,
+        failedCommands: 0,
+        successRate: 0,
+        avgResponseTimeMs: 0,
+        avgResponseTimeSec: 0
+      };
+    }
+
+    const failedCount = totalCount - successCount;
+    const totalResponseTime = responseTimes.reduce((a, b) => a + b, 0);
+    const avgResponseTime = totalResponseTime / totalCount;
+
+    const successRate = (successCount / totalCount) * 100;
+    const cappedSuccessRate = Math.min(successRate, 100);
 
     return {
       period: `${startDate} to ${endDate}`,
-      totalCommands,
-      successfulCommands,
-      failedCommands,
-      successRate: parseFloat(successRate.toFixed(2)),
+      totalCommands: totalCount,
+      successfulCommands: successCount,
+      failedCommands: failedCount,
+      successRate: parseFloat(cappedSuccessRate.toFixed(2)),
       avgResponseTimeMs: parseFloat(avgResponseTime.toFixed(2)),
       avgResponseTimeSec: parseFloat((avgResponseTime / 1000).toFixed(2))
     };
@@ -230,15 +251,20 @@ async function getDeviceStatistics(deviceId, startDate, endDate) {
 
     const responseTimes = [];
     let successCount = 0;
+    let totalCount = 0;
     const commandTypes = {};
 
     snapshot.forEach(doc => {
       const data = doc.data();
-      responseTimes.push(data.responseTimeMs);
-      
-      if (data.success) successCount++;
 
-      commandTypes[data.command] = (commandTypes[data.command] || 0) + 1;
+      if (data.responseTimeMs && data.responseTimeMs > 3) {
+        responseTimes.push(data.responseTimeMs);
+        totalCount++;
+        
+        if (data.success) successCount++;
+        
+        commandTypes[data.command] = (commandTypes[data.command] || 0) + 1;
+      }
     });
 
     const total = responseTimes.length;
@@ -256,10 +282,16 @@ async function getDeviceStatistics(deviceId, startDate, endDate) {
     const p95Index = Math.floor(total * 0.95);
     const p95 = responseTimes[p95Index];
 
+    const successRate = totalCount > 0 
+      ? parseFloat(((successCount / totalCount) * 100).toFixed(2))
+      : 0;
+
+    const cappedSuccessRate = Math.min(successRate, 100);
+
     return {
       deviceId,
-      totalCommands: total,
-      successRate: parseFloat(((successCount / total) * 100).toFixed(2)),
+      totalCommands: totalCount,
+      successRate: cappedSuccessRate,
       avgResponseMs: parseFloat(avg.toFixed(2)),
       minResponseMs: min,
       maxResponseMs: max,

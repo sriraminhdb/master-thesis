@@ -14,6 +14,15 @@ function getBearer(req) {
   return m ? m[1] : null;
 }
 
+function temperatureToRgb(kelvin) {
+  if (kelvin <= 2000) return 0xFF9329;
+  if (kelvin <= 3000) return 0xFFD4A3;
+  if (kelvin <= 4000) return 0xFFF4E5;
+  if (kelvin <= 5000) return 0xFFFFFF;
+  if (kelvin <= 6500) return 0xE8F4FF;
+  return 0xC9E2FF;
+}
+
 router.post("/", async (req, res) => {
   console.log('=== SMARTHOME REQUEST ===');
   console.log('Time:', new Date().toISOString());
@@ -482,18 +491,29 @@ async function handleExecute(agentUserId, payload) {
                 console.log('ColorAbsolute received!');
                 console.log('Color data:', JSON.stringify(ex.params.color));
                 
-                if (ex.params.color) {
-                  const colorValue = ex.params.color.spectrumRgb || ex.params.color.spectrumRGB;
-                  
-                  if (colorValue !== undefined) {
-                    console.log('Setting color to:', colorValue);
-                    state = await lightManager.setLightColor(agentUserId, dev.id, { 
-                      spectrumRgb: colorValue 
-                    });
-                  } else {
-                    console.log('WARNING: No color value found in params');
-                  }
+                if (!ex.params.color) {
+                  throw new Error('Missing color parameter in ColorAbsolute');
                 }
+                
+                let colorValue;
+
+                colorValue = ex.params.color.spectrumRgb || ex.params.color.spectrumRGB;
+
+                if (colorValue === undefined && ex.params.color.temperature) {
+                  console.log('Converting temperature to RGB:', ex.params.color.temperature);
+                  colorValue = temperatureToRgb(ex.params.color.temperature);
+                  console.log('Converted to RGB:', colorValue);
+                }
+                
+                if (colorValue === undefined || colorValue === null) {
+                  throw new Error('Missing spectrumRgb value in color parameter');
+                }
+                
+                console.log('Setting color to:', colorValue);
+                state = await lightManager.setLightColor(agentUserId, dev.id, { 
+                  spectrumRgb: colorValue 
+                });
+                console.log('Color set successfully');
               }
             } catch (error) {
               cmdSuccess = false;
